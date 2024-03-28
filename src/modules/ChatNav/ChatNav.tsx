@@ -16,10 +16,23 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
-import MailIcon from "@mui/icons-material/Mail";
-import { Chat, Message } from "../../store/appSlice";
-import { auth } from "../../config/firebase";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import { Chat, Message, getChats, setChats, setIsDrawerOpen } from "../../store/appSlice";
+import { auth, db } from "../../config/firebase";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import { Button, TextField } from "@mui/material";
+import {
+  FieldValue,
+  addDoc,
+  arrayUnion,
+  collection,
+  doc,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { RootState } from "../../store";
 
 const drawerWidth = 240;
 
@@ -81,23 +94,91 @@ export default function PersistentDrawerLeft({
 }) {
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
-  const [me, setMe] = React.useState<Chat>();
-  React.useEffect(() => {
-    const myself = allChats.find(
-      (el: Chat) => el.email === auth.currentUser?.email
-    );
-    setMe(myself);
-  }, [allChats]);
+  const me = allChats.find(
+    (el: Chat) => el.email === auth.currentUser?.email
+  );
+  const [findUser, setFindUser] = React.useState("");
+  const [isFindOpen, setIsFindOpen] = React.useState(false);
+  const [foundChat, setFoundChat] = React.useState<Chat | undefined>();
+  const isDrawerOpen = useSelector((state: RootState) => state.app.isDrawerOpen)
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
   const handleDrawerOpen = () => {
     setOpen(true);
+    setIsDrawerOpen(true)
   };
 
   const handleDrawerClose = () => {
     setOpen(false);
-  };
+    setIsDrawerOpen(false)
 
+  };
+  function findUserFunc() {
+    if (findUser === "") {
+      alert("Fill out the field");
+      return;
+    }
+    const isUserInMyList = me?.chats.some((el) => el.email === findUser);
+    let findChats;
+    if (!isUserInMyList) {
+      findChats = allChats.find(
+        (user) => user.email !== me?.email && user.email === findUser
+      );
+    }
+
+    setIsFindOpen(true);
+    setFoundChat(findChats);
+    setFindUser("");
+  }
+  function setFindUserField(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.value.charAt(e.target.value.length - 1) !== " ") {
+      setFindUser(e.target.value);
+    }
+  }
+
+  async function addToChats() {
+    if (foundChat) {
+      const returnChat = {
+        id: foundChat.id,
+        email: foundChat.email,
+        messages: [],
+        amount: 0
+      };
+      const returnTakerChat = {
+        id: me?.id,
+        email: me?.email,
+        messages: [],
+        amount: 0
+      };
+      
+      const foundChatRef = doc(db, "users", `${me?.id}`);
+      const takerChatRef = doc(db, "users", `${foundChat?.id}`)
+      const foundCollection = collection(db, "users");
+      try {
+
+        await updateDoc(foundChatRef, {
+          chats: arrayUnion(returnChat)
+        });
+        await updateDoc(takerChatRef, {
+          chats: arrayUnion(returnTakerChat)
+        })
+        const newData: Chat[] = [];
+        const snapshot = await getDocs(foundCollection);
+        snapshot.forEach((doc) => {
+          newData.push({ id: doc.id, ...(doc.data() as any) });
+        });
+        dispatch(setChats(newData))
+        setIsFindOpen(false);
+        setFoundChat(undefined);
+
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }
   return (
     <Box sx={{ display: "flex" }}>
+      {" "}
       <CssBaseline />
       <AppBar position="fixed" open={open}>
         <Toolbar>
@@ -138,17 +219,74 @@ export default function PersistentDrawerLeft({
           </IconButton>
         </DrawerHeader>
         <Divider />
-        <List>
-          {me?.chats.map((el) => (
-            <ListItem disablePadding key={el.id}>
-              <ListItemButton>
+        <ListItem>
+          <TextField
+            fullWidth
+            placeholder="User's email"
+            value={findUser}
+            onChange={(e) => setFindUserField(e)}
+          />
+        </ListItem>
+        <ListItem>
+          {isFindOpen ? (
+            <Button
+              variant="contained"
+              fullWidth
+              onClick={() => setIsFindOpen(false)}
+            >
+              Close
+            </Button>
+          ) : (
+            <Button variant="contained" fullWidth onClick={findUserFunc}>
+              Find
+            </Button>
+          )}
+        </ListItem>
+        {isFindOpen && (
+          <ListItem disablePadding>
+            {foundChat ? (
+              <ListItemButton onClick={addToChats}>
                 <ListItemIcon>
-                  <InboxIcon />
+                  <PersonAddIcon />
                 </ListItemIcon>
-                <ListItemText primary={el.taker} />
+                <ListItemText
+                  primary={
+                    foundChat.email.length > 20
+                      ? foundChat.email.slice(0, 20) + "..."
+                      : foundChat.email
+                  }
+                />
               </ListItemButton>
-            </ListItem>
-          ))}
+            ) : (
+              <ListItem>
+              <ListItemText primary={"User is not found"} />
+              </ListItem>
+            )}
+          </ListItem>
+        )}
+
+        <List>
+          {me?.chats.length === 0 ? (
+            <ListItem>You have no chats yet</ListItem>
+          ) : (
+            <>
+              <Divider />
+              {me?.chats.map((el) => (
+                <ListItem disablePadding key={el.id}>
+                  <ListItemButton onClick={() => navigate(`/chat/${el.id}`)}>
+                    <ListItemIcon>
+                      <AccountCircleIcon />
+                    </ListItemIcon>
+                    <ListItemText primary={
+                    el.email.length > 20
+                      ? el.email.slice(0, 20) + "..."
+                      : el.email
+                  } />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </>
+          )}
         </List>
         <Divider />
       </Drawer>

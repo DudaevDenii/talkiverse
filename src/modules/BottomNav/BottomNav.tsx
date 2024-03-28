@@ -9,9 +9,10 @@ import { AppDispatch, RootState } from "../../store";
 import { changeMode, changeValue } from "../../store/appSlice/index";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { auth } from "../../config/firebase";
 export default function LabelBottomNavigation() {
   const dispatch: AppDispatch = useDispatch();
-  const login = useSelector((state: RootState) => state.app.login);
+  const [isLogin, setIsLogin] = useState(false)
   const value = useSelector((state: RootState) => state.app.value);
   const navigate = useNavigate();
   useEffect(() => {
@@ -30,6 +31,14 @@ export default function LabelBottomNavigation() {
         break;
     }
   }, [value]);
+  useEffect(() => {
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        setIsLogin(true);
+      } else {
+        setIsLogin(false);
+      }
+  })})
   const handleChange = (_: React.SyntheticEvent, newValue: string) => {
     if (newValue !== "") {
       dispatch(changeValue(newValue));
@@ -50,11 +59,12 @@ export default function LabelBottomNavigation() {
         icon={<LightModeIcon />}
         onClick={() => dispatch(changeMode())}
       />
-      {login ? (
+      {isLogin ? (
         <BottomNavigationAction
           label="Logout"
-          value="logout"
+          value=""
           icon={<LogoutIcon />}
+          onClick={() => auth.signOut().then(() => {}).catch((err) => console.error(err))}
         />
       ) : (
         <BottomNavigationAction

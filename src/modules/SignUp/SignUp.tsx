@@ -13,7 +13,10 @@ import { auth } from "../../config/firebase";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store";
-import { logIn } from "../../store/appSlice";
+import { changeValue, logIn } from "../../store/appSlice";
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "../../config/firebase";
+
 function SignUp() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -79,12 +82,13 @@ function SignUp() {
     if (!hasErrors) {
       try {
         await createUserWithEmailAndPassword(auth, loginUp, passwordUp);
-        dispatch(logIn());
+        await addDoc(collection(db, "users"), {email: auth.currentUser?.email, chats: [{id: "Talkiverse", email: "Talkiverse@talkiverse.com",amount: 1, messages: [{id: 1, mine: false, message: "Hi! Welcome to Talkiverse messenger!"}]}]})
+        dispatch(changeValue("chats"))
         navigate("/");
       } catch (error) {
+        alert("User is already exist")
         console.error(error);
       }
-      console.log(auth.currentUser);
     }
   }
   return (
