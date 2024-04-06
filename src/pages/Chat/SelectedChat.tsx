@@ -18,7 +18,7 @@ const SelectedChat = () => {
   const { chats, isDrawerOpen } = useSelector((state: RootState) => state.app);
   const [sendInput, setSendInput] = useState("");
   const params = useParams();
-  const theme = useTheme();
+  const theme: any = useTheme();
   const me = chats.find((chat) => chat.email === auth.currentUser?.email);
   const currentChat = me?.chats.find((current) => current.id === params.id);
   const sortCurrentChat = {
@@ -34,7 +34,7 @@ const SelectedChat = () => {
       const meRef = doc(db, "users", `${me?.id}`)
       const meSnap = await getDoc(meRef)
       const meData = meSnap.data()
-      meData.chats.forEach((chat) => {
+      meData!.chats.forEach((chat:any) => {
         if(chat.id === params.id){
           chat.messages.push({
             message: sendInput,
@@ -43,7 +43,7 @@ const SelectedChat = () => {
           })
         } 
       })
-      await updateDoc(meRef, meData)
+      await updateDoc(meRef, meData!)
       setSendInput("")
       return;
     }
@@ -53,7 +53,7 @@ const SelectedChat = () => {
     const takerSnap = await getDoc(takerRef)
     const meData = meSnap.data()
     const takerData = takerSnap.data()
-    meData.chats.forEach((chat) => {
+    meData!.chats.forEach((chat: any) => {
       if(chat.id === params.id){
         chat.messages.push({
           message: sendInput,
@@ -62,7 +62,7 @@ const SelectedChat = () => {
         })
       } 
     })
-    takerData.chats.forEach((chat) => {
+    takerData!.chats.forEach((chat: any) => {
       if(chat.id === me?.id){
         chat.messages.push({
           message: sendInput,
@@ -70,8 +70,8 @@ const SelectedChat = () => {
           id: Date.now(),
         })
       }} )
-      await updateDoc(meRef, meData)
-      await updateDoc(takerRef, takerData)
+      await updateDoc(meRef, meData!)
+      await updateDoc(takerRef, takerData!)
       setSendInput("")
   }
   return (
@@ -83,6 +83,7 @@ const SelectedChat = () => {
               elevation={3}
               style={{ padding: "10px", marginBottom: "10px" }}
               key={message.id}
+              //@ts-ignore
               sx={{
                 color: theme.palette.mode === "dark" && message.mine && "black",
                 background: message.mine

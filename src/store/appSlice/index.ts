@@ -1,7 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { getDocs, collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import { WritableDraft } from "immer";
 
 export interface AppState {
   login: boolean;
@@ -99,11 +98,11 @@ export const appSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(getChats.fulfilled, (state, action) => {
       if (action.payload) {
-        state.chats = action.payload as WritableDraft<Chat>[];
+        state.chats = action.payload as any
       }
     });
     builder.addCase(listenToChats.fulfilled, (state, action) => {
-      state.chats = action.payload
+      state.chats = action.payload as any
     });
   },
 });

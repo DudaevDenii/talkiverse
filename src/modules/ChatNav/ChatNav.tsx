@@ -130,7 +130,7 @@ export default function PersistentDrawerLeft({
     setFoundChat(findChats);
     setFindUser("");
   }
-  function setFindUserField(e: React.ChangeEvent<HTMLInputElement>) {
+  function setFindUserField(e: any) {
     if (e.target.value.charAt(e.target.value.length - 1) !== " ") {
       setFindUser(e.target.value);
     }
@@ -224,7 +224,7 @@ export default function PersistentDrawerLeft({
             fullWidth
             placeholder="User's email"
             value={findUser}
-            onChange={(e) => setFindUserField(e)}
+            onChange={(e: any) => setFindUserField(e)}
           />
         </ListItem>
         <ListItem>
